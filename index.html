@@ -16,7 +16,6 @@
                 --accent-color: #0a84ff;
                 --refresh-color: #34c759;
                 --cycle-bg: #000000;
-                --accent-red: #d90429; /* 𝕏 버튼 전용 레드 */
 
                 --white-panel-bg: rgba(255, 255, 255, 0.96);
                 --bookmark-bar-bg: var(--white-panel-bg);
@@ -59,49 +58,6 @@
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
-            .btn-x-mobile {
-                position: absolute;
-                top: 15px;
-                left: 15px;
-                z-index: 100;
-                background: var(--accent-red);
-                color: white;
-                border: none;
-                width: 42px;
-                height: 42px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 900;
-                font-size: 20px;
-                box-shadow: 0 4px 15px rgba(217, 4, 41, 0.4);
-                cursor: pointer;
-                transition: 0.2s;
-            }
-            .btn-x-mobile:active {
-                transform: scale(0.9);
-            }
-
-            .x-switch-group-mobile {
-                display: none;
-                gap: 6px;
-                align-items: center;
-            }
-            .x-switch-btn-mobile {
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                padding: 5px 12px;
-                border-radius: 15px;
-                font-size: 13px;
-                font-weight: 600;
-            }
-            .x-switch-btn-mobile.active {
-                background: white;
-                color: var(--accent-red);
-            }
-
             .floating-title {
                 position: absolute;
                 top: 20px;
@@ -118,10 +74,6 @@
                 align-items: center;
                 justify-content: center;
                 white-space: nowrap;
-            }
-            .floating-title.x-mode-active {
-                background: var(--accent-red);
-                box-shadow: 0 6px 20px rgba(217, 4, 41, 0.5);
             }
 
             .floating-title a {
@@ -390,15 +342,8 @@
     <body class="dark-theme">
         <div class="container">
             <div class="frame-viewport" id="mainViewport">
-                <button class="btn-x-mobile" onclick="enterXMode()">𝕏</button>
-
                 <div class="floating-title" id="floatingTitleContainer">
                     <a id="activeTitle" href="https://m.fmkorea.com/" target="_blank"> <span>바로가기</span> <span style="font-size: 18px; opacity: 0.8">↗</span> </a>
-                    <div class="x-switch-group-mobile" id="xSwitcherMobile">
-                        <button class="x-switch-btn-mobile active" onclick="loadXCategory('news', this)">News</button>
-                        <button class="x-switch-btn-mobile" onclick="loadXCategory('football', this)">Football</button>
-                        <button class="x-switch-btn-mobile" onclick="loadXCategory('timeline', this)">Home</button>
-                    </div>
                 </div>
                 <iframe id="activeFrame" src="https://m.fmkorea.com/" class="site-frame" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>
             </div>
@@ -414,7 +359,6 @@
                         <option value="soccer">해축</option>
                         <option value="humor">유머</option>
                         <option value="news">축소통</option>
-                        <option value="x">X</option>
                     </select>
                     <input type="text" id="searchKeyword" class="search-input" placeholder="검색어 또는 URL 입력..." onkeypress="if (event.key === 'Enter') executeSearch();" />
                     <button onclick="executeSearch()" class="search-icon-btn">🔍</button>
@@ -456,14 +400,7 @@
                 cycleIntervalTimer = null,
                 touchStartX = 0,
                 sortableInstance = null;
-            let cycleMode = 'all',
-                isXMode = false;
-
-            const xUrls = {
-                news: 'http://localhost:1200/twitter/list/2009797206531027361',
-                football: 'http://localhost:1200/twitter/list/1778686659091104131',
-                timeline: 'http://localhost:1200/twitter/home',
-            };
+            let cycleMode = 'all';
 
             window.onload = function () {
                 const savedBms = localStorage.getItem('myHubBookmarks');
@@ -483,12 +420,6 @@
             }
 
             function smartRefresh() {
-                if (isXMode) {
-                    const activeBtn = document.querySelector('.x-switch-btn-mobile.active');
-                    const type = activeBtn.innerText.toLowerCase() === 'home' ? 'timeline' : activeBtn.innerText.toLowerCase();
-                    loadXCategory(type, activeBtn);
-                    return;
-                }
                 const frame = document.getElementById('activeFrame');
                 if (!frame || !currentUrl) return;
                 frame.style.opacity = '0';
@@ -501,114 +432,6 @@
                         applyCrop();
                     };
                 }, 50);
-            }
-
-            function enterXMode() {
-                isXMode = true;
-                document.getElementById('activeTitle').style.display = 'none';
-                document.getElementById('xSwitcherMobile').style.display = 'flex';
-                document.getElementById('floatingTitleContainer').classList.add('x-mode-active');
-                loadXCategory('news', document.querySelector('.x-switch-btn-mobile'));
-            }
-
-            function loadXCategory(type, btnEl) {
-                if (!isXMode) return;
-                document.querySelectorAll('.x-switch-btn-mobile').forEach((b) => b.classList.remove('active'));
-                btnEl.classList.add('active');
-                const url = xUrls[type];
-                currentUrl = url;
-                renderTwitterFeed(url);
-            }
-
-            async function renderTwitterFeed(url) {
-                const frame = document.getElementById('activeFrame');
-                frame.style.opacity = '0';
-                try {
-                    const cacheBuster = (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                    const res = await fetch(url + cacheBuster, { cache: 'no-store' });
-                    if (!res.ok) throw new Error();
-                    const text = await res.text();
-                    const xml = new DOMParser().parseFromString(text, 'text/xml');
-                    const items = xml.querySelectorAll('item');
-
-                    let cards = Array.from(items)
-                        .map((item) => {
-                            const rawDesc = item.querySelector('description')?.textContent || '';
-                            const link = item.querySelector('link')?.textContent || '#';
-                            const authorRaw = item.getElementsByTagName('dc:creator')[0]?.textContent || item.querySelector('author')?.textContent || '';
-                            const pubDateRaw = item.querySelector('pubDate')?.textContent || '';
-
-                            let authorHtml = `<span class="author-text">@${authorRaw}</span>`;
-                            if (authorRaw.includes('@')) {
-                                const handle = authorRaw.split('@')[1].split(' ')[0].trim();
-                                authorHtml = `<a href="https://x.com/${handle}" target="_blank" class="author-link">@${authorRaw}</a>`;
-                            }
-
-                            const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = rawDesc;
-
-                            const videoTags = tempDiv.querySelectorAll('video');
-                            let videoHtml = '';
-                            // [수정] 모바일 동영상 재생 정책 대응 속성 추가
-                            videoTags.forEach((vid) => {
-                                vid.setAttribute('controls', '');
-                                vid.setAttribute('playsinline', '');
-                                vid.setAttribute('preload', 'metadata');
-                                vid.muted = true;
-                                videoHtml += vid.outerHTML;
-                                vid.remove();
-                            });
-
-                            const firstImg = tempDiv.querySelector('img');
-                            let imgHtml = '';
-                            if (firstImg && videoTags.length === 0) {
-                                imgHtml = `<div class="link-card-img"><img src="${firstImg.src}" loading="lazy"></div>`;
-                            }
-                            if (firstImg) firstImg.remove();
-
-                            let cleanText = tempDiv.innerHTML
-                                .replace(/<br\s*\/?>/gi, '\n')
-                                .replace(/<\/?[^>]+(>|$)/g, '')
-                                .trim();
-                            cleanText = cleanText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: #1d9bf0; text-decoration: underline;">$1</a>');
-
-                            let formattedTime = '';
-                            if (pubDateRaw) {
-                                const d = new Date(pubDateRaw);
-                                formattedTime = d.toLocaleString('ko-KR', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-                            }
-
-                            return `
-                <div class="card">
-                    <div class="card-header">
-                        ${authorHtml}
-                        <a href="${link}" target="_blank" class="view-btn">VIEW ↗</a>
-                    </div>
-                    ${cleanText ? `<div class="content">${cleanText}</div>` : ''}
-                    ${videoHtml}
-                    ${imgHtml}
-                    <div class="post-time">${formattedTime}</div>
-                </div>`;
-                        })
-                        .join('');
-
-                    frame.removeAttribute('src');
-                    frame.srcdoc = `<html><head><style>
-                body { background: #3a3a3c; color: #0f1419; font-family: -apple-system, sans-serif; padding: 80px 12px 30px; margin: 0; line-height: 1.5; }
-                .card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-                .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-                .author-link, .author-text { color: #00ba7c; font-weight: 800; font-size: 15px; text-decoration: none; }
-                .view-btn { background: #f0f3f4; color: #536471; text-decoration: none; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-                .content { font-size: 14px; word-break: break-all; white-space: pre-wrap; margin-bottom: 10px; color: #0f1419; }
-                video { width: 100%; height: auto !important; display: block; border-radius: 12px; margin-top: 10px; background: #000; }
-                .link-card-img { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 10px; }
-                .link-card-img img { width: 100%; display: block; height: auto; }
-                .post-time { font-size: 11px; color: #8e99a1; margin-top: 10px; text-align: right; }
-            </style></head><body>${cards}</body></html>`;
-                    frame.style.opacity = '1';
-                } catch (e) {
-                    frame.src = url;
-                }
             }
 
             function updateSubmitBtnText() {
@@ -664,11 +487,6 @@
             }
 
             function executeSearch() {
-                isXMode = false;
-                document.getElementById('activeTitle').style.display = 'flex';
-                document.getElementById('xSwitcherMobile').style.display = 'none';
-                document.getElementById('floatingTitleContainer').classList.remove('x-mode-active');
-
                 const input = document.getElementById('searchKeyword'),
                     keyword = input.value.trim(),
                     target = document.getElementById('searchTarget').value;
@@ -696,21 +514,16 @@
                         soccer: `https://m.fmkorea.com/search.php?mid=football_world&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
                         humor: `https://m.fmkorea.com/search.php?mid=humor&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
                         news: `https://m.fmkorea.com/search.php?mid=football_news&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
-                        x: `https://x.com/search?q=${encodedKeyword}&src=recent_search_click`,
                     };
-                    if (target === 'x') {
-                        window.open(searchUrls[target], '_blank');
-                    } else {
-                        frame.style.opacity = '0';
-                        currentUrl = searchUrls[target];
-                        frame.src = currentUrl;
-                        document.getElementById('activeTitle').querySelector('span').innerText = '검색';
-                        document.getElementById('activeTitle').href = currentUrl;
-                        frame.onload = () => {
-                            frame.style.opacity = '1';
-                            applyCrop();
-                        };
-                    }
+                    frame.style.opacity = '0';
+                    currentUrl = searchUrls[target];
+                    frame.src = currentUrl;
+                    document.getElementById('activeTitle').querySelector('span').innerText = '검색';
+                    document.getElementById('activeTitle').href = currentUrl;
+                    frame.onload = () => {
+                        frame.style.opacity = '1';
+                        applyCrop();
+                    };
                 }
                 input.blur();
                 toggleSearch();
@@ -780,11 +593,6 @@
 
             function loadSite(url, title) {
                 if (isEditMode) return;
-                isXMode = false;
-                document.getElementById('activeTitle').style.display = 'flex';
-                document.getElementById('xSwitcherMobile').style.display = 'none';
-                document.getElementById('floatingTitleContainer').classList.remove('x-mode-active');
-
                 currentUrl = url;
                 const frame = document.getElementById('activeFrame'),
                     titleSpan = document.getElementById('activeTitle').querySelector('span'),
@@ -891,7 +699,7 @@
                 let html = `<div onclick="toggleEditMode()" class="bookmark-item btn-manage-in-bar">⚙️</div>`;
                 html += bms
                     .map((bm, index) => {
-                        const act = !isEditMode && !isXMode && bm.url === currentUrl ? 'active-menu' : '',
+                        const act = !isEditMode && bm.url === currentUrl ? 'active-menu' : '',
                             edt = editingIndex === index ? 'editing-now' : '';
                         return `
                 <div onclick="handleBookmarkClick(${index}, event)" class="bookmark-item ${act} ${edt}" data-name="${bm.name}" data-url="${bm.url}">
