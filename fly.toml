@@ -1,23 +1,22 @@
 app = "rsshub-leehskid"
 
-# 1. RSSHub가 Fly.io의 내부 포트(1200)를 정확히 바라보게 강제합니다.
 [env]
-HOST = "0.0.0.0"
 PORT = "1200"
+# RSSHub가 모든 네트워크 인터페이스에서 응답하게 합니다. (클로드 추천)
+LISTEN_INADDR_ANY = "1"
+NODE_ENV = "production"
 
 [http_service]
 internal_port = 1200
 force_https = true
-# "suspend" 대신 true/false로 설정하여 안정성을 높입니다.
 auto_stop_machines = true
 auto_start_machines = true
-# 무료 티어 유지를 위해 0으로 설정하는 것을 권장합니다 (접속할 때만 켜짐).
 min_machines_running = 0
 
-# 2. 체크 경로를 RSSHub의 기본 상태 확인 경로인 "/"로 변경합니다.
 [[http_service.checks]]
-grace_period = "10s"
+# 부팅 시간을 충분히(1분) 기다려줍니다.
+grace_period = "60s"
 interval = "30s"
 method = "GET"
-timeout = "5s"
+timeout = "10s"
 path = "/"

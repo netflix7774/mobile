@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        <title>My Mobile Hub - Dual Cycle v5.5</title>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+        <style>
+            :root {
+                --bg-color: #000000;
+                --nav-bg: rgba(34, 124, 125, 0.9);
+                --card-bg: #1c1c1e;
+                --text-main: #ffffff;
+                --text-sub: #ffffff;
+                --border-color: rgba(255, 255, 255, 0.2);
+                --accent-color: #0a84ff;
+                --refresh-color: #34c759;
+                --cycle-bg: #000000;
+                --accent-red: #d90429; /* 𝕏 버튼 전용 레드 */
+
+                --white-panel-bg: rgba(255, 255, 255, 0.96);
+                --bookmark-bar-bg: var(--white-panel-bg);
+                --search-panel-bg: var(--white-panel-bg);
+                --add-form-bg: var(--white-panel-bg);
+
+                --item-bg: #227c7d;
+                --item-text: #ffffff;
+                --active-bookmark: #ffb703;
+
+                --title-bg: #227c7d;
+                --title-text: #ffffff;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: var(--bg-color);
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+                overflow: hidden;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .container {
+                width: 100%;
+                height: 100dvh;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .frame-viewport {
+                flex-grow: 1;
+                position: relative;
+                background-color: #fff;
+                overflow: hidden;
+                border-radius: 24px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                margin: 12px 12px 15px 12px;
+                z-index: 1;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .btn-x-mobile {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                z-index: 100;
+                background: var(--accent-red);
+                color: white;
+                border: none;
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+                font-size: 20px;
+                box-shadow: 0 4px 15px rgba(217, 4, 41, 0.4);
+                cursor: pointer;
+                transition: 0.2s;
+            }
+            .btn-x-mobile:active {
+                transform: scale(0.9);
+            }
+
+            .x-switch-group-mobile {
+                display: none;
+                gap: 6px;
+                align-items: center;
+            }
+            .x-switch-btn-mobile {
+                background: rgba(255, 255, 255, 0.2);
+                border: none;
+                color: white;
+                padding: 5px 12px;
+                border-radius: 15px;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .x-switch-btn-mobile.active {
+                background: white;
+                color: var(--accent-red);
+            }
+
+            .floating-title {
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10;
+                background: var(--title-bg);
+                padding: 10px 28px;
+                border-radius: 35px;
+                box-shadow: 0 6px 20px rgba(34, 124, 125, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                white-space: nowrap;
+            }
+            .floating-title.x-mode-active {
+                background: var(--accent-red);
+                box-shadow: 0 6px 20px rgba(217, 4, 41, 0.5);
+            }
+
+            .floating-title a {
+                text-decoration: none;
+                color: var(--title-text) !important;
+                font-size: 23px;
+                font-weight: 400;
+                letter-spacing: -0.04em;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .floating-title:active {
+                transform: translateX(-50%) scale(0.92);
+            }
+
+            .site-frame {
+                width: 100%;
+                height: 100%;
+                border: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .footer-fixed {
+                position: fixed;
+                bottom: 25px;
+                left: 15px;
+                right: 15px;
+                z-index: 9999;
+                background-color: var(--nav-bg);
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                padding: 10px;
+                border-radius: 30px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .search-panel {
+                max-height: 0;
+                opacity: 0;
+                overflow: hidden;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 0;
+                background: var(--search-panel-bg);
+                border-radius: 20px;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            .search-panel.active {
+                max-height: 60px;
+                opacity: 1;
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+
+            .search-container {
+                flex-grow: 1;
+                display: flex;
+                align-items: center;
+                background: rgba(0, 0, 0, 0.05);
+                border-radius: 15px;
+                padding: 2px 4px 2px 12px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
+            .search-select {
+                background: none;
+                border: none;
+                font-size: 11px;
+                font-weight: 400;
+                color: #333;
+                cursor: pointer;
+                outline: none;
+            }
+            .search-input {
+                flex-grow: 1;
+                background: none;
+                border: none;
+                padding: 6px 0;
+                font-size: 13px;
+                color: #333;
+                outline: none;
+                font-weight: 400;
+            }
+            .search-icon-btn {
+                background: none;
+                border: none;
+                color: #333;
+                font-size: 14px;
+                cursor: pointer;
+            }
+
+            #addForm {
+                display: none;
+                flex-direction: column;
+                gap: 8px;
+                margin-bottom: 10px;
+                padding: 15px;
+                background: var(--add-form-bg);
+                border-radius: 20px;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            #addForm input {
+                padding: 10px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                background: rgba(0, 0, 0, 0.03);
+                color: #333;
+                font-weight: 400;
+                outline: none;
+            }
+
+            #submitBtn {
+                width: fit-content;
+                align-self: center;
+                padding: 8px 35px;
+                background: var(--title-bg);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-weight: 400;
+                cursor: pointer;
+                margin-top: 5px;
+            }
+
+            .bookmark-bar {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 0;
+                max-height: 0;
+                opacity: 0;
+                overflow: hidden;
+                transition: all 0.4s ease;
+                background: var(--bookmark-bar-bg);
+                border-radius: 20px;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            .bookmark-bar.expanded {
+                max-height: 250px;
+                opacity: 1;
+                margin-bottom: 10px;
+                padding: 12px;
+                overflow-y: auto;
+            }
+
+            .bookmark-item {
+                text-decoration: none;
+                font-size: 12px;
+                font-weight: 400;
+                color: var(--item-text);
+                background: var(--item-bg);
+                padding: 8px 14px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                height: 34px;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                transition:
+                    background-color 0.2s,
+                    color 0.2s,
+                    border-color 0.2s;
+                user-select: none;
+            }
+
+            .btn-manage-in-bar {
+                background: rgba(0, 0, 0, 0.05) !important;
+                color: var(--item-bg) !important;
+                border: none !important;
+                font-size: 16px !important;
+            }
+
+            .active-menu {
+                background: var(--active-bookmark) !important;
+                color: #000000 !important;
+                font-weight: 400;
+                border-color: #ffffff !important;
+                box-shadow: 0 4px 12px rgba(255, 183, 3, 0.5);
+            }
+
+            .editing-now {
+                border-color: var(--edit-color) !important;
+                border-style: dashed;
+                background: rgba(255, 149, 0, 0.2) !important;
+            }
+
+            .control-group {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 2px 5px;
+            }
+
+            .btn-action {
+                padding: 8px 14px;
+                border-radius: 15px;
+                border: none;
+                font-size: 12px;
+                font-weight: 400;
+                cursor: pointer;
+                transition: 0.2s;
+                color: #fff;
+            }
+            .btn-tab {
+                background: rgba(0, 0, 0, 0.4);
+            }
+            .btn-tab.active-tab {
+                background: #fff !important;
+                color: #000 !important;
+                font-weight: 400;
+            }
+
+            .btn-refresh {
+                background: var(--refresh-color) !important;
+                font-size: 16px;
+            }
+
+            .btn-cycle {
+                background: var(--cycle-bg);
+                font-size: 12px;
+                font-weight: 400;
+                min-width: 34px;
+            }
+
+            .label-white {
+                color: #ffffff !important;
+                font-weight: 400;
+                font-size: 12px;
+            }
+            .cycle-input {
+                width: 38px;
+                padding: 6px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                text-align: center;
+                font-size: 11px;
+                font-weight: 400;
+                background: rgba(0, 0, 0, 0.5);
+                color: #ffffff;
+                outline: none;
+            }
+
+            .sortable-fallback {
+                opacity: 1 !important;
+                transform: scale(1.1) !important;
+                z-index: 10001 !important;
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+            }
+            .sortable-ghost {
+                opacity: 0.1 !important;
+                background: var(--active-bookmark) !important;
+            }
+        </style>
+    </head>
+    <body class="dark-theme">
+        <div class="container">
+            <div class="frame-viewport" id="mainViewport">
+                <button class="btn-x-mobile" onclick="enterXMode()">𝕏</button>
+
+                <div class="floating-title" id="floatingTitleContainer">
+                    <a id="activeTitle" href="https://m.fmkorea.com/" target="_blank"> <span>바로가기</span> <span style="font-size: 18px; opacity: 0.8">↗</span> </a>
+                    <div class="x-switch-group-mobile" id="xSwitcherMobile">
+                        <button class="x-switch-btn-mobile active" onclick="loadXCategory('news', this)">News</button>
+                        <button class="x-switch-btn-mobile" onclick="loadXCategory('football', this)">Football</button>
+                        <button class="x-switch-btn-mobile" onclick="loadXCategory('timeline', this)">Home</button>
+                    </div>
+                </div>
+                <iframe id="activeFrame" src="https://m.fmkorea.com/" class="site-frame" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>
+            </div>
+        </div>
+
+        <div class="footer-fixed" id="swipeFooter">
+            <div class="search-panel" id="searchPanel">
+                <div class="search-container" style="width: 100%">
+                    <select id="searchTarget" class="search-select">
+                        <option value="url">URL</option>
+                        <option value="total">펨코</option>
+                        <option value="best">포텐</option>
+                        <option value="soccer">해축</option>
+                        <option value="humor">유머</option>
+                        <option value="news">축소통</option>
+                        <option value="x">X</option>
+                    </select>
+                    <input type="text" id="searchKeyword" class="search-input" placeholder="검색어 또는 URL 입력..." onkeypress="if (event.key === 'Enter') executeSearch();" />
+                    <button onclick="executeSearch()" class="search-icon-btn">🔍</button>
+                </div>
+            </div>
+
+            <div id="addForm">
+                <input type="text" id="bmName" placeholder="사이트 이름" oninput="updateSubmitBtnText()" />
+                <input type="text" id="bmUrl" placeholder="URL 입력 (예: google.com)" oninput="updateSubmitBtnText()" />
+                <button id="submitBtn" onclick="handleBookmarkSubmit()">취소</button>
+            </div>
+
+            <div class="bookmark-bar" id="sortableList"></div>
+
+            <div class="control-group">
+                <div style="display: flex; gap: 5px">
+                    <button onclick="toggleSearch()" class="btn-action btn-tab" id="searchToggleBtn">🔍</button>
+                    <button onclick="toggleBookmarkHeight()" class="btn-action btn-tab" id="expandBtn">📂</button>
+                    <button onclick="goToPcVersion()" class="btn-action btn-tab">🖥️</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 4px">
+                    <input type="number" id="cropPercent" class="cycle-input" value="0" oninput="applyCrop()" />
+                    <span class="label-white">%</span>
+                </div>
+
+                <div style="display: flex; gap: 5px; align-items: center">
+                    <input type="number" id="cycleInterval" class="cycle-input" placeholder="초" />
+                    <button id="cycleBtn" class="btn-action btn-cycle" onclick="toggleCycle()">순</button>
+                    <button onclick="smartRefresh()" class="btn-action btn-refresh">↻</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let isEditMode = false,
+                editingIndex = -1,
+                currentUrl = 'https://m.fmkorea.com/',
+                cycleIntervalTimer = null,
+                touchStartX = 0,
+                sortableInstance = null;
+            let cycleMode = 'all',
+                isXMode = false;
+
+            const xUrls = {
+                news: 'http://localhost:1200/twitter/list/2009797206531027361',
+                football: 'http://localhost:1200/twitter/list/1778686659091104131',
+                timeline: 'http://localhost:1200/twitter/home',
+            };
+
+            window.onload = function () {
+                const savedBms = localStorage.getItem('myHubBookmarks');
+                if (!savedBms || savedBms === '[]') {
+                    localStorage.setItem('myHubBookmarks', JSON.stringify([{ name: '포텐', url: 'https://m.fmkorea.com/' }]));
+                }
+                document.body.className = 'dark-theme';
+                document.getElementById('cropPercent').value = localStorage.getItem('myHubCrop') || 0;
+                if (localStorage.getItem('myHubBookmarkExpanded') === 'true') applyBookmarkExpandedUI(true);
+                renderBookmarks();
+                applyCrop();
+                initSwipe();
+            };
+
+            function goToPcVersion() {
+                window.location.href = 'https://netflix7774.github.io/my-dashboard/index.html';
+            }
+
+            function smartRefresh() {
+                if (isXMode) {
+                    const activeBtn = document.querySelector('.x-switch-btn-mobile.active');
+                    const type = activeBtn.innerText.toLowerCase() === 'home' ? 'timeline' : activeBtn.innerText.toLowerCase();
+                    loadXCategory(type, activeBtn);
+                    return;
+                }
+                const frame = document.getElementById('activeFrame');
+                if (!frame || !currentUrl) return;
+                frame.style.opacity = '0';
+                const separator = currentUrl.includes('?') ? '&' : '?';
+                const forceRefreshSrc = currentUrl + separator + 'refresh_token=' + new Date().getTime();
+                setTimeout(() => {
+                    frame.src = forceRefreshSrc;
+                    frame.onload = () => {
+                        frame.style.opacity = '1';
+                        applyCrop();
+                    };
+                }, 50);
+            }
+
+            function enterXMode() {
+                isXMode = true;
+                document.getElementById('activeTitle').style.display = 'none';
+                document.getElementById('xSwitcherMobile').style.display = 'flex';
+                document.getElementById('floatingTitleContainer').classList.add('x-mode-active');
+                loadXCategory('news', document.querySelector('.x-switch-btn-mobile'));
+            }
+
+            function loadXCategory(type, btnEl) {
+                if (!isXMode) return;
+                document.querySelectorAll('.x-switch-btn-mobile').forEach((b) => b.classList.remove('active'));
+                btnEl.classList.add('active');
+                const url = xUrls[type];
+                currentUrl = url;
+                renderTwitterFeed(url);
+            }
+
+            async function renderTwitterFeed(url) {
+                const frame = document.getElementById('activeFrame');
+                frame.style.opacity = '0';
+                try {
+                    const cacheBuster = (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                    const res = await fetch(url + cacheBuster, { cache: 'no-store' });
+                    if (!res.ok) throw new Error();
+                    const text = await res.text();
+                    const xml = new DOMParser().parseFromString(text, 'text/xml');
+                    const items = xml.querySelectorAll('item');
+
+                    let cards = Array.from(items)
+                        .map((item) => {
+                            const rawDesc = item.querySelector('description')?.textContent || '';
+                            const link = item.querySelector('link')?.textContent || '#';
+                            const authorRaw = item.getElementsByTagName('dc:creator')[0]?.textContent || item.querySelector('author')?.textContent || '';
+                            const pubDateRaw = item.querySelector('pubDate')?.textContent || '';
+
+                            let authorHtml = `<span class="author-text">@${authorRaw}</span>`;
+                            if (authorRaw.includes('@')) {
+                                const handle = authorRaw.split('@')[1].split(' ')[0].trim();
+                                authorHtml = `<a href="https://x.com/${handle}" target="_blank" class="author-link">@${authorRaw}</a>`;
+                            }
+
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = rawDesc;
+
+                            const videoTags = tempDiv.querySelectorAll('video');
+                            let videoHtml = '';
+                            // [수정] 모바일 동영상 재생 정책 대응 속성 추가
+                            videoTags.forEach((vid) => {
+                                vid.setAttribute('controls', '');
+                                vid.setAttribute('playsinline', '');
+                                vid.setAttribute('preload', 'metadata');
+                                vid.muted = true;
+                                videoHtml += vid.outerHTML;
+                                vid.remove();
+                            });
+
+                            const firstImg = tempDiv.querySelector('img');
+                            let imgHtml = '';
+                            if (firstImg && videoTags.length === 0) {
+                                imgHtml = `<div class="link-card-img"><img src="${firstImg.src}" loading="lazy"></div>`;
+                            }
+                            if (firstImg) firstImg.remove();
+
+                            let cleanText = tempDiv.innerHTML
+                                .replace(/<br\s*\/?>/gi, '\n')
+                                .replace(/<\/?[^>]+(>|$)/g, '')
+                                .trim();
+                            cleanText = cleanText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: #1d9bf0; text-decoration: underline;">$1</a>');
+
+                            let formattedTime = '';
+                            if (pubDateRaw) {
+                                const d = new Date(pubDateRaw);
+                                formattedTime = d.toLocaleString('ko-KR', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                            }
+
+                            return `
+                <div class="card">
+                    <div class="card-header">
+                        ${authorHtml}
+                        <a href="${link}" target="_blank" class="view-btn">VIEW ↗</a>
+                    </div>
+                    ${cleanText ? `<div class="content">${cleanText}</div>` : ''}
+                    ${videoHtml}
+                    ${imgHtml}
+                    <div class="post-time">${formattedTime}</div>
+                </div>`;
+                        })
+                        .join('');
+
+                    frame.removeAttribute('src');
+                    frame.srcdoc = `<html><head><style>
+                body { background: #3a3a3c; color: #0f1419; font-family: -apple-system, sans-serif; padding: 80px 12px 30px; margin: 0; line-height: 1.5; }
+                .card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+                .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+                .author-link, .author-text { color: #00ba7c; font-weight: 800; font-size: 15px; text-decoration: none; }
+                .view-btn { background: #f0f3f4; color: #536471; text-decoration: none; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+                .content { font-size: 14px; word-break: break-all; white-space: pre-wrap; margin-bottom: 10px; color: #0f1419; }
+                video { width: 100%; height: auto !important; display: block; border-radius: 12px; margin-top: 10px; background: #000; }
+                .link-card-img { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 10px; }
+                .link-card-img img { width: 100%; display: block; height: auto; }
+                .post-time { font-size: 11px; color: #8e99a1; margin-top: 10px; text-align: right; }
+            </style></head><body>${cards}</body></html>`;
+                    frame.style.opacity = '1';
+                } catch (e) {
+                    frame.src = url;
+                }
+            }
+
+            function updateSubmitBtnText() {
+                const btn = document.getElementById('submitBtn'),
+                    name = document.getElementById('bmName').value,
+                    url = document.getElementById('bmUrl').value;
+                if (editingIndex > -1) {
+                    btn.innerText = '변경';
+                } else if (!name.trim() && !url.trim()) {
+                    btn.innerText = '취소';
+                } else {
+                    btn.innerText = '추가';
+                }
+            }
+
+            function toggleSearch() {
+                const panel = document.getElementById('searchPanel'),
+                    isActive = panel.classList.toggle('active');
+                document.getElementById('searchToggleBtn').classList.toggle('active-tab', isActive);
+                if (isActive) {
+                    document.getElementById('searchKeyword').focus();
+                    closeOtherPanels('search');
+                }
+            }
+
+            function toggleBookmarkHeight() {
+                const isCurrentlyExpanded = document.getElementById('sortableList').classList.contains('expanded');
+                applyBookmarkExpandedUI(!isCurrentlyExpanded);
+                if (!isCurrentlyExpanded) closeOtherPanels('bookmarks');
+            }
+
+            function toggleEditMode() {
+                isEditMode = !isEditMode;
+                const form = document.getElementById('addForm');
+                form.style.display = isEditMode ? 'flex' : 'none';
+                resetEditState(true);
+                if (sortableInstance) sortableInstance.option('disabled', !isEditMode);
+                renderBookmarks();
+            }
+
+            function closeOtherPanels(current) {
+                if (current !== 'search') (document.getElementById('searchPanel').classList.remove('active'), document.getElementById('searchToggleBtn').classList.remove('active-tab'));
+                if (current !== 'bookmarks') {
+                    document.getElementById('sortableList').classList.remove('expanded');
+                    document.getElementById('expandBtn').classList.remove('active-tab');
+                    localStorage.setItem('myHubBookmarkExpanded', false);
+                    isEditMode = false;
+                    document.getElementById('addForm').style.display = 'none';
+                    resetEditState(true);
+                    if (sortableInstance) sortableInstance.option('disabled', true);
+                    renderBookmarks();
+                }
+            }
+
+            function executeSearch() {
+                isXMode = false;
+                document.getElementById('activeTitle').style.display = 'flex';
+                document.getElementById('xSwitcherMobile').style.display = 'none';
+                document.getElementById('floatingTitleContainer').classList.remove('x-mode-active');
+
+                const input = document.getElementById('searchKeyword'),
+                    keyword = input.value.trim(),
+                    target = document.getElementById('searchTarget').value;
+                if (!keyword) return;
+                const frame = document.getElementById('activeFrame');
+                if (target === 'url') {
+                    let url = keyword;
+                    if (!/^https?:\/\//i.test(url)) {
+                        url = 'https://' + url;
+                    }
+                    frame.style.opacity = '0';
+                    currentUrl = url;
+                    frame.src = currentUrl;
+                    document.getElementById('activeTitle').querySelector('span').innerText = 'URL';
+                    document.getElementById('activeTitle').href = currentUrl;
+                    frame.onload = () => {
+                        frame.style.opacity = '1';
+                        applyCrop();
+                    };
+                } else {
+                    const encodedKeyword = encodeURIComponent(keyword);
+                    const searchUrls = {
+                        total: `https://m.fmkorea.com/search.php?act=IS&is_keyword=${encodedKeyword}#gsc.sort=date&gsc.tab=&gsc.q=${encodedKeyword}`,
+                        best: `https://m.fmkorea.com/search.php?mid=best&search_keyword=${encodedKeyword}&search_target=title_content`,
+                        soccer: `https://m.fmkorea.com/search.php?mid=football_world&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
+                        humor: `https://m.fmkorea.com/search.php?mid=humor&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
+                        news: `https://m.fmkorea.com/search.php?mid=football_news&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
+                        x: `https://x.com/search?q=${encodedKeyword}&src=recent_search_click`,
+                    };
+                    if (target === 'x') {
+                        window.open(searchUrls[target], '_blank');
+                    } else {
+                        frame.style.opacity = '0';
+                        currentUrl = searchUrls[target];
+                        frame.src = currentUrl;
+                        document.getElementById('activeTitle').querySelector('span').innerText = '검색';
+                        document.getElementById('activeTitle').href = currentUrl;
+                        frame.onload = () => {
+                            frame.style.opacity = '1';
+                            applyCrop();
+                        };
+                    }
+                }
+                input.blur();
+                toggleSearch();
+            }
+
+            function applyBookmarkExpandedUI(expand) {
+                const bar = document.getElementById('sortableList'),
+                    btn = document.getElementById('expandBtn');
+                if (expand) {
+                    bar.classList.add('expanded');
+                    btn.classList.add('active-tab');
+                    localStorage.setItem('myHubBookmarkExpanded', true);
+                } else {
+                    bar.classList.remove('expanded');
+                    btn.classList.remove('active-tab');
+                    localStorage.setItem('myHubBookmarkExpanded', false);
+                    isEditMode = false;
+                    document.getElementById('addForm').style.display = 'none';
+                }
+            }
+
+            function initSwipe() {
+                const target = document.getElementById('swipeFooter');
+                target.addEventListener('touchstart', (e) => (touchStartX = e.changedTouches[0].screenX), { passive: true });
+                target.addEventListener(
+                    'touchend',
+                    (e) => {
+                        const deltaX = e.changedTouches[0].screenX - touchStartX;
+                        if (Math.abs(deltaX) > 70) {
+                            const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                            let idx = bms.findIndex((bm) => bm.url === currentUrl);
+                            if (idx === -1) idx = 0;
+                            if (deltaX > 0) idx = (idx - 1 + bms.length) % bms.length;
+                            else idx = (idx + 1) % bms.length;
+                            loadSite(bms[idx].url, bms[idx].name);
+                        }
+                    },
+                    { passive: true }
+                );
+            }
+
+            function initSortable() {
+                const el = document.getElementById('sortableList');
+                if (sortableInstance) sortableInstance.destroy();
+                sortableInstance = new Sortable(el, {
+                    disabled: !isEditMode,
+                    animation: 350,
+                    forceFallback: true,
+                    fallbackClass: 'sortable-fallback',
+                    ghostClass: 'sortable-ghost',
+                    filter: '.btn-manage-in-bar',
+                    onEnd: function () {
+                        const items = document.querySelectorAll('#sortableList .bookmark-item[data-url]');
+                        const newOrder = Array.from(items).map((item) => ({ name: item.dataset.name, url: item.dataset.url }));
+                        localStorage.setItem('myHubBookmarks', JSON.stringify(newOrder));
+                    },
+                });
+            }
+
+            function applyCrop() {
+                const percent = document.getElementById('cropPercent').value || 0,
+                    frame = document.getElementById('activeFrame');
+                frame.style.top = `-${percent}%`;
+                frame.style.height = `${100 + parseInt(percent)}%`;
+                localStorage.setItem('myHubCrop', percent);
+            }
+
+            function loadSite(url, title) {
+                if (isEditMode) return;
+                isXMode = false;
+                document.getElementById('activeTitle').style.display = 'flex';
+                document.getElementById('xSwitcherMobile').style.display = 'none';
+                document.getElementById('floatingTitleContainer').classList.remove('x-mode-active');
+
+                currentUrl = url;
+                const frame = document.getElementById('activeFrame'),
+                    titleSpan = document.getElementById('activeTitle').querySelector('span'),
+                    titleLink = document.getElementById('activeTitle');
+                frame.style.opacity = '0';
+                frame.removeAttribute('srcdoc');
+                frame.src = url;
+                titleSpan.innerText = title;
+                titleLink.href = url;
+                frame.onload = () => {
+                    frame.style.opacity = '1';
+                    applyCrop();
+                };
+                renderBookmarks();
+            }
+
+            function handleBookmarkClick(index, event) {
+                const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                if (isEditMode) {
+                    event.stopPropagation();
+                    if (editingIndex === index) {
+                        resetEditState(true);
+                    } else {
+                        editingIndex = index;
+                        document.getElementById('bmName').value = bms[index].name;
+                        document.getElementById('bmUrl').value = bms[index].url.replace(/^https?:\/\//i, '');
+                        updateSubmitBtnText();
+                    }
+                    renderBookmarks();
+                } else {
+                    loadSite(bms[index].url, bms[index].name);
+                }
+            }
+
+            function resetEditState(clearInputs = true) {
+                editingIndex = -1;
+                if (clearInputs) {
+                    document.getElementById('bmName').value = '';
+                    document.getElementById('bmUrl').value = '';
+                }
+                updateSubmitBtnText();
+            }
+
+            function handleBookmarkSubmit() {
+                const btnText = document.getElementById('submitBtn').innerText;
+                if (btnText === '취소') {
+                    toggleEditMode();
+                    return;
+                }
+                const name = document.getElementById('bmName').value.trim();
+                let url = document.getElementById('bmUrl').value.trim();
+                if (!name || !url) return alert('내용을 입력해 주세요!');
+                if (!/^https?:\/\//i.test(url)) {
+                    url = 'https://' + url;
+                }
+                const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                if (editingIndex > -1) bms[editingIndex] = { name, url };
+                else bms.push({ name, url });
+                localStorage.setItem('myHubBookmarks', JSON.stringify(bms));
+                resetEditState(true);
+                renderBookmarks();
+            }
+
+            function toggleCycle() {
+                const btn = document.getElementById('cycleBtn');
+                if (cycleIntervalTimer) {
+                    clearInterval(cycleIntervalTimer);
+                    cycleIntervalTimer = null;
+                    btn.innerText = '순';
+                    btn.style.background = '#000000';
+                } else {
+                    const isAll = confirm('모든 북마크를 순환하시겠습니까?\n(취소 시 현재 페이지만 새로고침합니다)');
+                    cycleMode = isAll ? 'all' : 'single';
+                    let sec = parseInt(document.getElementById('cycleInterval').value) || 10;
+                    btn.innerText = isAll ? '전' : '현';
+                    btn.style.background = '#ff3b30';
+                    cycleIntervalTimer = setInterval(() => {
+                        if (cycleMode === 'all') {
+                            const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                            let idx = bms.findIndex((bm) => bm.url === currentUrl);
+                            if (idx === -1) idx = 0;
+                            let next = (idx + 1) % bms.length;
+                            loadSite(bms[next].url, bms[next].name);
+                        } else {
+                            smartRefresh();
+                        }
+                    }, sec * 1000);
+                }
+            }
+
+            function deleteBookmark(index, event) {
+                event.stopPropagation();
+                if (!confirm('삭제하시겠습니까?')) return;
+                let bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                bms.splice(index, 1);
+                localStorage.setItem('myHubBookmarks', JSON.stringify(bms));
+                if (editingIndex === index) resetEditState(true);
+                renderBookmarks();
+            }
+
+            function renderBookmarks() {
+                const container = document.getElementById('sortableList'),
+                    bms = JSON.parse(localStorage.getItem('myHubBookmarks')) || [];
+                let html = `<div onclick="toggleEditMode()" class="bookmark-item btn-manage-in-bar">⚙️</div>`;
+                html += bms
+                    .map((bm, index) => {
+                        const act = !isEditMode && !isXMode && bm.url === currentUrl ? 'active-menu' : '',
+                            edt = editingIndex === index ? 'editing-now' : '';
+                        return `
+                <div onclick="handleBookmarkClick(${index}, event)" class="bookmark-item ${act} ${edt}" data-name="${bm.name}" data-url="${bm.url}">
+                    ${bm.name}
+                    ${isEditMode ? `<span style="margin-left:8px; color:#ff3b30; font-weight:400;" onclick="deleteBookmark(${index}, event)">×</span>` : ''}
+                </div>
+            `;
+                    })
+                    .join('');
+                container.innerHTML = html;
+                initSortable();
+            }
+        </script>
+    </body>
+</html>
