@@ -30,6 +30,17 @@
                 --title-text: #ffffff;
             }
 
+            /* [최종 수정] 다크모드 활성화 시 전체 변수 강제 오버라이드 */
+            body.dark-mode {
+                --white-panel-bg: rgba(30, 30, 32, 0.98) !important;
+                --bookmark-bar-bg: rgba(30, 30, 32, 0.98) !important;
+                --search-panel-bg: rgba(30, 30, 32, 0.98) !important;
+                --add-form-bg: rgba(30, 30, 32, 0.98) !important;
+                --item-bg: #2c2c2e !important;
+                --title-bg: #164e4f !important;
+                background-color: #000000 !important;
+            }
+
             body {
                 margin: 0;
                 padding: 0;
@@ -37,6 +48,7 @@
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
                 overflow: hidden;
                 -webkit-tap-highlight-color: transparent;
+                transition: background-color 0.3s ease;
             }
 
             .container {
@@ -49,13 +61,62 @@
             .frame-viewport {
                 flex-grow: 1;
                 position: relative;
-                background-color: #fff;
+                background-color: #ffffff;
                 overflow: hidden;
                 border-radius: 24px;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
                 margin: 12px 12px 15px 12px;
                 z-index: 1;
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            /* [핵심] 다크모드 시 프레임 내부 사이트까지 반전 (아이폰 전용 프리픽스 추가) */
+            body.dark-mode .frame-viewport {
+                background-color: #000000 !important;
+            }
+
+            body.dark-mode #activeFrame {
+                -webkit-filter: grayscale(0) invert(1) contrast(0.8) brightness(1.3) !important;
+                filter: grayscale(0) invert(1) contrast(0.8) brightness(1.3) !important;
+                background-color: #ffffff !important; /* 반전의 기준이 되는 배경색 */
+                -webkit-transform: translateZ(0); /* 아이폰 하드웨어 가속 강제 */
+                transform: translateZ(0);
+            }
+
+            .btn-dark-toggle {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 1000;
+                background: var(--nav-bg);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: white;
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .btn-dark-toggle.active {
+                background: var(--active-bookmark);
+                color: #000;
+            }
+
+            /* 다크모드 시 텍스트 및 입력창 가독성 확보 */
+            body.dark-mode .search-input,
+            body.dark-mode .search-select,
+            body.dark-mode .search-icon-btn,
+            body.dark-mode #addForm input,
+            body.dark-mode .label-white {
+                color: #ffffff !important;
             }
 
             .floating-title {
@@ -85,9 +146,6 @@
                 display: flex;
                 align-items: center;
                 gap: 10px;
-            }
-            .floating-title:active {
-                transform: translateX(-50%) scale(0.92);
             }
 
             .site-frame {
@@ -243,16 +301,13 @@
                 display: flex;
                 align-items: center;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                transition:
-                    background-color 0.2s,
-                    color 0.2s,
-                    border-color 0.2s;
+                transition: all 0.2s;
                 user-select: none;
             }
 
             .btn-manage-in-bar {
-                background: rgba(0, 0, 0, 0.05) !important;
-                color: var(--item-bg) !important;
+                background: rgba(255, 255, 255, 0.15) !important;
+                color: #ffffff !important;
                 border: none !important;
                 font-size: 16px !important;
             }
@@ -263,12 +318,6 @@
                 font-weight: 400;
                 border-color: #ffffff !important;
                 box-shadow: 0 4px 12px rgba(255, 183, 3, 0.5);
-            }
-
-            .editing-now {
-                border-color: var(--edit-color) !important;
-                border-style: dashed;
-                background: rgba(255, 149, 0, 0.2) !important;
             }
 
             .control-group {
@@ -326,22 +375,13 @@
                 color: #ffffff;
                 outline: none;
             }
-
-            .sortable-fallback {
-                opacity: 1 !important;
-                transform: scale(1.1) !important;
-                z-index: 10001 !important;
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
-            }
-            .sortable-ghost {
-                opacity: 0.1 !important;
-                background: var(--active-bookmark) !important;
-            }
         </style>
     </head>
-    <body class="dark-theme">
+    <body>
         <div class="container">
             <div class="frame-viewport" id="mainViewport">
+                <button id="darkModeBtn" class="btn-dark-toggle" onclick="toggleDarkMode()">🌙</button>
+
                 <div class="floating-title" id="floatingTitleContainer">
                     <a id="activeTitle" href="https://m.fmkorea.com/" target="_blank"> <span>바로가기</span> <span style="font-size: 18px; opacity: 0.8">↗</span> </a>
                 </div>
@@ -402,18 +442,41 @@
                 sortableInstance = null;
             let cycleMode = 'all';
 
+            // 다크모드 초기화
+            let isDarkMode = localStorage.getItem('prohub_darkmode') === 'true';
+
             window.onload = function () {
                 const savedBms = localStorage.getItem('myHubBookmarks');
                 if (!savedBms || savedBms === '[]') {
                     localStorage.setItem('myHubBookmarks', JSON.stringify([{ name: '포텐', url: 'https://m.fmkorea.com/' }]));
                 }
-                document.body.className = 'dark-theme';
                 document.getElementById('cropPercent').value = localStorage.getItem('myHubCrop') || 0;
                 if (localStorage.getItem('myHubBookmarkExpanded') === 'true') applyBookmarkExpandedUI(true);
+                
                 renderBookmarks();
                 applyCrop();
                 initSwipe();
+                applyDarkMode(); // [핵심] 페이지 로드 시 즉시 전체 다크모드 적용
             };
+
+            function toggleDarkMode() {
+                isDarkMode = !isDarkMode;
+                localStorage.setItem('prohub_darkmode', isDarkMode);
+                applyDarkMode();
+            }
+
+            function applyDarkMode() {
+                const btn = document.getElementById('darkModeBtn');
+                if (isDarkMode) {
+                    document.body.classList.add('dark-mode'); // [수정] body에 클래스를 추가하여 전체 UI 변수 전환
+                    btn.classList.add('active');
+                    btn.innerText = '☀️';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    btn.classList.remove('active');
+                    btn.innerText = '🌙';
+                }
+            }
 
             function goToPcVersion() {
                 window.location.href = 'https://netflix7774.github.io/pc/index.html';
@@ -423,8 +486,7 @@
                 const frame = document.getElementById('activeFrame');
                 if (!frame || !currentUrl) return;
                 frame.style.opacity = '0';
-                const separator = currentUrl.includes('?') ? '&' : '?';
-                const forceRefreshSrc = currentUrl + separator + 'refresh_token=' + new Date().getTime();
+                const forceRefreshSrc = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'r=' + Date.now();
                 setTimeout(() => {
                     frame.src = forceRefreshSrc;
                     frame.onload = () => {
@@ -438,13 +500,9 @@
                 const btn = document.getElementById('submitBtn'),
                     name = document.getElementById('bmName').value,
                     url = document.getElementById('bmUrl').value;
-                if (editingIndex > -1) {
-                    btn.innerText = '변경';
-                } else if (!name.trim() && !url.trim()) {
-                    btn.innerText = '취소';
-                } else {
-                    btn.innerText = '추가';
-                }
+                if (editingIndex > -1) btn.innerText = '변경';
+                else if (!name.trim() && !url.trim()) btn.innerText = '취소';
+                else btn.innerText = '추가';
             }
 
             function toggleSearch() {
@@ -492,39 +550,21 @@
                     target = document.getElementById('searchTarget').value;
                 if (!keyword) return;
                 const frame = document.getElementById('activeFrame');
+                let url = '';
                 if (target === 'url') {
-                    let url = keyword;
-                    if (!/^https?:\/\//i.test(url)) {
-                        url = 'https://' + url;
-                    }
-                    frame.style.opacity = '0';
-                    currentUrl = url;
-                    frame.src = currentUrl;
-                    document.getElementById('activeTitle').querySelector('span').innerText = 'URL';
-                    document.getElementById('activeTitle').href = currentUrl;
-                    frame.onload = () => {
-                        frame.style.opacity = '1';
-                        applyCrop();
-                    };
+                    url = keyword.startsWith('http') ? keyword : 'https://' + keyword;
                 } else {
-                    const encodedKeyword = encodeURIComponent(keyword);
+                    const encoded = encodeURIComponent(keyword);
                     const searchUrls = {
-                        total: `https://m.fmkorea.com/search.php?act=IS&is_keyword=${encodedKeyword}#gsc.sort=date&gsc.tab=&gsc.q=${encodedKeyword}`,
-                        best: `https://m.fmkorea.com/search.php?mid=best&search_keyword=${encodedKeyword}&search_target=title_content`,
-                        soccer: `https://m.fmkorea.com/search.php?mid=football_world&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
-                        humor: `https://m.fmkorea.com/search.php?mid=humor&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
-                        news: `https://m.fmkorea.com/search.php?mid=football_news&category=&search_target=title_content&search_keyword=${encodedKeyword}`,
+                        total: `https://m.fmkorea.com/search.php?act=IS&is_keyword=${encoded}#gsc.sort=date&gsc.tab=&gsc.q=${encoded}`,
+                        best: `https://m.fmkorea.com/search.php?mid=best&search_keyword=${encoded}&search_target=title_content`,
+                        soccer: `https://m.fmkorea.com/search.php?mid=football_world&category=&search_target=title_content&search_keyword=${encoded}`,
+                        humor: `https://m.fmkorea.com/search.php?mid=humor&category=&search_target=title_content&search_keyword=${encoded}`,
+                        news: `https://m.fmkorea.com/search.php?mid=football_news&category=&search_target=title_content&search_keyword=${encoded}`,
                     };
-                    frame.style.opacity = '0';
-                    currentUrl = searchUrls[target];
-                    frame.src = currentUrl;
-                    document.getElementById('activeTitle').querySelector('span').innerText = '검색';
-                    document.getElementById('activeTitle').href = currentUrl;
-                    frame.onload = () => {
-                        frame.style.opacity = '1';
-                        applyCrop();
-                    };
+                    url = searchUrls[target];
                 }
+                loadSite(url, target === 'url' ? 'URL' : '검색');
                 input.blur();
                 toggleSearch();
             }
@@ -548,21 +588,16 @@
             function initSwipe() {
                 const target = document.getElementById('swipeFooter');
                 target.addEventListener('touchstart', (e) => (touchStartX = e.changedTouches[0].screenX), { passive: true });
-                target.addEventListener(
-                    'touchend',
-                    (e) => {
-                        const deltaX = e.changedTouches[0].screenX - touchStartX;
-                        if (Math.abs(deltaX) > 70) {
-                            const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
-                            let idx = bms.findIndex((bm) => bm.url === currentUrl);
-                            if (idx === -1) idx = 0;
-                            if (deltaX > 0) idx = (idx - 1 + bms.length) % bms.length;
-                            else idx = (idx + 1) % bms.length;
-                            loadSite(bms[idx].url, bms[idx].name);
-                        }
-                    },
-                    { passive: true }
-                );
+                target.addEventListener('touchend', (e) => {
+                    const deltaX = e.changedTouches[0].screenX - touchStartX;
+                    if (Math.abs(deltaX) > 70) {
+                        const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
+                        let idx = bms.findIndex((bm) => bm.url === currentUrl);
+                        if (idx === -1) idx = 0;
+                        idx = deltaX > 0 ? (idx - 1 + bms.length) % bms.length : (idx + 1) % bms.length;
+                        loadSite(bms[idx].url, bms[idx].name);
+                    }
+                }, { passive: true });
             }
 
             function initSortable() {
@@ -572,9 +607,6 @@
                     disabled: !isEditMode,
                     animation: 350,
                     forceFallback: true,
-                    fallbackClass: 'sortable-fallback',
-                    ghostClass: 'sortable-ghost',
-                    filter: '.btn-manage-in-bar',
                     onEnd: function () {
                         const items = document.querySelectorAll('#sortableList .bookmark-item[data-url]');
                         const newOrder = Array.from(items).map((item) => ({ name: item.dataset.name, url: item.dataset.url }));
@@ -598,7 +630,6 @@
                     titleSpan = document.getElementById('activeTitle').querySelector('span'),
                     titleLink = document.getElementById('activeTitle');
                 frame.style.opacity = '0';
-                frame.removeAttribute('srcdoc');
                 frame.src = url;
                 titleSpan.innerText = title;
                 titleLink.href = url;
@@ -613,18 +644,15 @@
                 const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
                 if (isEditMode) {
                     event.stopPropagation();
-                    if (editingIndex === index) {
-                        resetEditState(true);
-                    } else {
+                    if (editingIndex === index) resetEditState(true);
+                    else {
                         editingIndex = index;
                         document.getElementById('bmName').value = bms[index].name;
                         document.getElementById('bmUrl').value = bms[index].url.replace(/^https?:\/\//i, '');
                         updateSubmitBtnText();
                     }
                     renderBookmarks();
-                } else {
-                    loadSite(bms[index].url, bms[index].name);
-                }
+                } else loadSite(bms[index].url, bms[index].name);
             }
 
             function resetEditState(clearInputs = true) {
@@ -638,16 +666,11 @@
 
             function handleBookmarkSubmit() {
                 const btnText = document.getElementById('submitBtn').innerText;
-                if (btnText === '취소') {
-                    toggleEditMode();
-                    return;
-                }
+                if (btnText === '취소') { toggleEditMode(); return; }
                 const name = document.getElementById('bmName').value.trim();
                 let url = document.getElementById('bmUrl').value.trim();
                 if (!name || !url) return alert('내용을 입력해 주세요!');
-                if (!/^https?:\/\//i.test(url)) {
-                    url = 'https://' + url;
-                }
+                if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
                 const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
                 if (editingIndex > -1) bms[editingIndex] = { name, url };
                 else bms.push({ name, url });
@@ -673,12 +696,9 @@
                         if (cycleMode === 'all') {
                             const bms = JSON.parse(localStorage.getItem('myHubBookmarks'));
                             let idx = bms.findIndex((bm) => bm.url === currentUrl);
-                            if (idx === -1) idx = 0;
-                            let next = (idx + 1) % bms.length;
-                            loadSite(bms[next].url, bms[next].name);
-                        } else {
-                            smartRefresh();
-                        }
+                            idx = (idx === -1) ? 0 : (idx + 1) % bms.length;
+                            loadSite(bms[idx].url, bms[idx].name);
+                        } else smartRefresh();
                     }, sec * 1000);
                 }
             }
@@ -697,18 +717,13 @@
                 const container = document.getElementById('sortableList'),
                     bms = JSON.parse(localStorage.getItem('myHubBookmarks')) || [];
                 let html = `<div onclick="toggleEditMode()" class="bookmark-item btn-manage-in-bar">⚙️</div>`;
-                html += bms
-                    .map((bm, index) => {
-                        const act = !isEditMode && bm.url === currentUrl ? 'active-menu' : '',
-                            edt = editingIndex === index ? 'editing-now' : '';
-                        return `
-                <div onclick="handleBookmarkClick(${index}, event)" class="bookmark-item ${act} ${edt}" data-name="${bm.name}" data-url="${bm.url}">
-                    ${bm.name}
-                    ${isEditMode ? `<span style="margin-left:8px; color:#ff3b30; font-weight:400;" onclick="deleteBookmark(${index}, event)">×</span>` : ''}
-                </div>
-            `;
-                    })
-                    .join('');
+                html += bms.map((bm, index) => {
+                    const act = !isEditMode && bm.url === currentUrl ? 'active-menu' : '',
+                        edt = editingIndex === index ? 'editing-now' : '';
+                    return `<div onclick="handleBookmarkClick(${index}, event)" class="bookmark-item ${act} ${edt}" data-name="${bm.name}" data-url="${bm.url}">
+                        ${bm.name}${isEditMode ? `<span style="margin-left:8px; color:#ff3b30;" onclick="deleteBookmark(${index}, event)">×</span>` : ''}
+                    </div>`;
+                }).join('');
                 container.innerHTML = html;
                 initSortable();
             }
