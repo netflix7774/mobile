@@ -16,21 +16,17 @@
                 --accent-color: #0a84ff;
                 --refresh-color: #34c759;
                 --cycle-bg: #000000;
-
                 --white-panel-bg: rgba(255, 255, 255, 0.96);
                 --bookmark-bar-bg: var(--white-panel-bg);
                 --search-panel-bg: var(--white-panel-bg);
                 --add-form-bg: var(--white-panel-bg);
-
                 --item-bg: #227c7d;
                 --item-text: #ffffff;
                 --active-bookmark: #ffb703;
-
                 --title-bg: #227c7d;
                 --title-text: #ffffff;
             }
 
-            /* [최종 수정] 다크모드 활성화 시 전체 변수 강제 오버라이드 */
             body.dark-mode {
                 --white-panel-bg: rgba(30, 30, 32, 0.98) !important;
                 --bookmark-bar-bg: rgba(30, 30, 32, 0.98) !important;
@@ -70,7 +66,6 @@
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
-            /* [핵심] 다크모드 시 프레임 내부 사이트까지 반전 (아이폰 전용 프리픽스 추가) */
             body.dark-mode .frame-viewport {
                 background-color: #000000 !important;
             }
@@ -78,8 +73,8 @@
             body.dark-mode #activeFrame {
                 -webkit-filter: grayscale(0) invert(1) contrast(0.8) brightness(1.3) !important;
                 filter: grayscale(0) invert(1) contrast(0.8) brightness(1.3) !important;
-                background-color: #ffffff !important; /* 반전의 기준이 되는 배경색 */
-                -webkit-transform: translateZ(0); /* 아이폰 하드웨어 가속 강제 */
+                background-color: #ffffff !important;
+                -webkit-transform: translateZ(0);
                 transform: translateZ(0);
             }
 
@@ -110,7 +105,6 @@
                 color: #000;
             }
 
-            /* 다크모드 시 텍스트 및 입력창 가독성 확보 */
             body.dark-mode .search-input,
             body.dark-mode .search-select,
             body.dark-mode .search-icon-btn,
@@ -301,7 +295,7 @@
                 display: flex;
                 align-items: center;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                transition: all 0.2s;
+                transition: background-color 0.2s; /* [중요] 여기에 transition: all을 쓰면 드래그와 충돌할 수 있음 */
                 user-select: none;
             }
 
@@ -318,6 +312,17 @@
                 font-weight: 400;
                 border-color: #ffffff !important;
                 box-shadow: 0 4px 12px rgba(255, 183, 3, 0.5);
+            }
+
+            /* 드래그 시 고스트(원본 자리에 남는 것) 스타일 */
+            .sortable-ghost {
+                opacity: 0 !important; /* 움직이는 동안 원래 자리는 투명하게 */
+            }
+
+            /* 선택된 아이템 스타일 */
+            .sortable-chosen {
+                transform: scale(1.05);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             }
 
             .control-group {
@@ -337,51 +342,18 @@
                 transition: 0.2s;
                 color: #fff;
             }
-            .btn-tab {
-                background: rgba(0, 0, 0, 0.4);
-            }
-            .btn-tab.active-tab {
-                background: #fff !important;
-                color: #000 !important;
-                font-weight: 400;
-            }
-
-            .btn-refresh {
-                background: var(--refresh-color) !important;
-                font-size: 16px;
-            }
-
-            .btn-cycle {
-                background: var(--cycle-bg);
-                font-size: 12px;
-                font-weight: 400;
-                min-width: 34px;
-            }
-
-            .label-white {
-                color: #ffffff !important;
-                font-weight: 400;
-                font-size: 12px;
-            }
-            .cycle-input {
-                width: 38px;
-                padding: 6px;
-                border-radius: 10px;
-                border: 1px solid rgba(255, 255, 255, 0.4);
-                text-align: center;
-                font-size: 11px;
-                font-weight: 400;
-                background: rgba(0, 0, 0, 0.5);
-                color: #ffffff;
-                outline: none;
-            }
+            .btn-tab { background: rgba(0, 0, 0, 0.4); }
+            .btn-tab.active-tab { background: #fff !important; color: #000 !important; font-weight: 400; }
+            .btn-refresh { background: var(--refresh-color) !important; font-size: 16px; }
+            .btn-cycle { background: var(--cycle-bg); font-size: 12px; font-weight: 400; min-width: 34px; }
+            .label-white { color: #ffffff !important; font-weight: 400; font-size: 12px; }
+            .cycle-input { width: 38px; padding: 6px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.4); text-align: center; font-size: 11px; font-weight: 400; background: rgba(0, 0, 0, 0.5); color: #ffffff; outline: none; }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="frame-viewport" id="mainViewport">
                 <button id="darkModeBtn" class="btn-dark-toggle" onclick="toggleDarkMode()">🌙</button>
-
                 <div class="floating-title" id="floatingTitleContainer">
                     <a id="activeTitle" href="https://m.fmkorea.com/" target="_blank"> <span>바로가기</span> <span style="font-size: 18px; opacity: 0.8">↗</span> </a>
                 </div>
@@ -442,7 +414,6 @@
                 sortableInstance = null;
             let cycleMode = 'all';
 
-            // 다크모드 초기화
             let isDarkMode = localStorage.getItem('prohub_darkmode') === 'true';
 
             window.onload = function () {
@@ -456,7 +427,7 @@
                 renderBookmarks();
                 applyCrop();
                 initSwipe();
-                applyDarkMode(); // [핵심] 페이지 로드 시 즉시 전체 다크모드 적용
+                applyDarkMode();
             };
 
             function toggleDarkMode() {
@@ -468,7 +439,7 @@
             function applyDarkMode() {
                 const btn = document.getElementById('darkModeBtn');
                 if (isDarkMode) {
-                    document.body.classList.add('dark-mode'); // [수정] body에 클래스를 추가하여 전체 UI 변수 전환
+                    document.body.classList.add('dark-mode');
                     btn.classList.add('active');
                     btn.innerText = '☀️';
                 } else {
@@ -478,9 +449,7 @@
                 }
             }
 
-            function goToPcVersion() {
-                window.location.href = 'https://netflix7774.github.io/pc/index.html';
-            }
+            function goToPcVersion() { window.location.href = 'https://netflix7774.github.io/pc/index.html'; }
 
             function smartRefresh() {
                 const frame = document.getElementById('activeFrame');
@@ -489,10 +458,7 @@
                 const forceRefreshSrc = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'r=' + Date.now();
                 setTimeout(() => {
                     frame.src = forceRefreshSrc;
-                    frame.onload = () => {
-                        frame.style.opacity = '1';
-                        applyCrop();
-                    };
+                    frame.onload = () => { frame.style.opacity = '1'; applyCrop(); };
                 }, 50);
             }
 
@@ -549,7 +515,6 @@
                     keyword = input.value.trim(),
                     target = document.getElementById('searchTarget').value;
                 if (!keyword) return;
-                const frame = document.getElementById('activeFrame');
                 let url = '';
                 if (target === 'url') {
                     url = keyword.startsWith('http') ? keyword : 'https://' + keyword;
@@ -600,13 +565,17 @@
                 }, { passive: true });
             }
 
+            // [수정] 아이템이 부드럽게 밀려나며 자리를 잡는 정석적인 Sortable 설정
             function initSortable() {
                 const el = document.getElementById('sortableList');
                 if (sortableInstance) sortableInstance.destroy();
                 sortableInstance = new Sortable(el, {
                     disabled: !isEditMode,
-                    animation: 350,
-                    forceFallback: true,
+                    animation: 300, // 미끄러지는 시각 효과의 핵심 속도
+                    easing: "cubic-bezier(1, 0, 0, 1)", // 더욱 쫀득하게 미끄러지는 느낌
+                    ghostClass: "sortable-ghost",
+                    chosenClass: "sortable-chosen",
+                    filter: ".btn-manage-in-bar", // 설정 버튼은 드래그 제외
                     onEnd: function () {
                         const items = document.querySelectorAll('#sortableList .bookmark-item[data-url]');
                         const newOrder = Array.from(items).map((item) => ({ name: item.dataset.name, url: item.dataset.url }));
@@ -633,10 +602,7 @@
                 frame.src = url;
                 titleSpan.innerText = title;
                 titleLink.href = url;
-                frame.onload = () => {
-                    frame.style.opacity = '1';
-                    applyCrop();
-                };
+                frame.onload = () => { frame.style.opacity = '1'; applyCrop(); };
                 renderBookmarks();
             }
 
